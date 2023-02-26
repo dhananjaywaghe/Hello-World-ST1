@@ -1,14 +1,57 @@
-pipeline {
-  agent any 
-  environment {
-    AWS_DEFAULT_REGION = 'us-east-1'
-    AWS_PROFILE = 'my-aws-profile'
-     }   
-        stages{
-         stage("Git Clone"){
-            steps{
-              checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/dhananjaywaghe/Hello-World-ST1.git']])
+pipeline{
+      agent any 
+      stages{
+            stage("git checkout"){
+                steps {
+                   checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/dhananjaywaghe/Hello-World-ST1.git']])  
+                }
             }
-       }       
-     }
-} 
+            stage("Gradle Build"){
+                steps{
+                  bat 'gradlew.bat clean build'
+                }
+            }
+            stage("Docker build"){
+                steps{
+                  bat 'docker version'
+                  bat 'docker build -t docker-demo .'
+                  bat 'docker image list'
+                  bat 'docker tag docker-demo dhananjayw/docker-demo:docker-demo' 
+                }
+            }
+            stage("push image to docker HUB"){
+                steps{
+                    bat 'docker push  dhananjayw/docker-demo:docker-demo'
+                }
+            }
+            stage("Check EKSCTL version"){
+                steps {
+                   dir('C:\\Program Files\\Amazon\\AWSCLIV2') {
+                   bat 'aws --version'
+                    }
+                 bat "eksctl version "
+               }
+            }
+            stage("AWS Authentication") {
+                 steps {
+                    dir('C:\\Program Files\\Amazon\\AWSCLIV2') {
+                    bat 'aws --version'
+                   }
+                    withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-integration',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                   ]]) {
+                    
+                  }
+                }
+            }
+            stage("deploy k8s app"){
+                steps{
+                    bat 'kubectl apply -f k8s-spring-boot-deployment.yml'
+                }
+            }
+      }
+}  
+     
