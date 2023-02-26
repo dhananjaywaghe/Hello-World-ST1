@@ -1,17 +1,15 @@
 pipeline {
-  agent any 
-  environment {
+    agent any
+    environment {
     AWS_DEFAULT_REGION = 'us-east-1'
     AWS_PROFILE = 'my-aws-profile'
-     }    
+     }
+  
+    stages{
         stage("Git Clone"){
             steps{
               checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/dhananjaywaghe/Hello-World-ST1.git']])
             }
-       }       
+         }   
 }
         
-
-
-
-
