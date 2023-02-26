@@ -1,0 +1,107 @@
+pipeline {
+  agent any
+  environment {
+    AWS_DEFAULT_REGION = 'us-east-1'
+    AWS_PROFILE = 'my-aws-profile'
+     }
+  
+    stages{
+        stage("Git Clone"){
+          checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/dhananjaywaghe/Hello-World-ST1.git']])
+       }
+
+        stage('Gradle Build') {
+          bat 'gradlew.bat clean build'
+       }
+    
+        stage("Docker build"){
+          bat 'docker version'
+          bat 'docker build -t docker-demo .'
+          bat 'docker image list'
+          bat 'docker tag docker-demo dhananjayw/docker-demo:docker-demo'
+       }
+        stage("Push Image to Docker Hub"){
+          bat 'docker push  dhananjayw/docker-demo:docker-demo'
+       }
+        stage("AWS Authentication to setup EKS") {
+            steps {
+                dir('C:\\Program Files\\Amazon\\AWSCLIV2') {
+                bat 'aws --version'
+            }
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-integration',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                   dir('C:\\Program Files\\Amazon\\AWSCLIV2') {
+                    bat 'aws --version'
+                    bat "aws eks create-cluster --name prod --role-arn arn:aws:iam::990653946065:role/eksClusterRole --resources-vpc-config subnetIds=subnet-0d9b13ce74da3baf7 subnet-0b85d37573c7d5893,securityGroupIds=sg-04a864aeff1a132e9 --version 1.24 region us-east-1 --nodegroup-name worker-nodes --node-type t2.micro --nodes 2" 
+                }
+            }
+        } 
+       stage("kubernetes deployment"){
+        bat 'kubectl apply -f k8s-spring-boot-deployment.yml'
+      }
+    } 
+
+  }   
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+stage('Create EKS Cluster') {
+            steps {
+                dir('C:\\Program Files\\Amazon\\AWSCLIV2') {
+                bat 'aws --version'
+            }
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-integration',
+                    accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                    secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+                ]]) {
+                    
+                }
+            }
+          bat '''
+            eksctl create cluster \
+            --name=my-cluster \
+            --version=1.22 \
+            --region=eu-east-1 \
+            --nodegroup-name=my-node-group \
+            --node-type=t2.medium \
+            --nodes=2 \
+          '''
+        }
+      
+    
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
